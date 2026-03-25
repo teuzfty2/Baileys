@@ -2,6 +2,7 @@
 
 import { Router, Request, Response } from 'express';
 import { BaileysManager } from '../../services/baileys';
+import { mongoMiddleware } from '../../middleware/database';
 
 const router = Router();
 
@@ -9,8 +10,15 @@ const router = Router();
  * @swagger
  * /groups/management/create:
  *   post:
- *     summary: Criação completa de grupo
+ *     summary: Criação de grupo e salvamento no MongoDB
  *     tags: [Groups Management]
+ *     parameters:
+ *       - in: header
+ *         name: x-base
+ *         schema: { type: string, default: "watools_db" }
+ *       - in: header
+ *         name: x-collection
+ *         schema: { type: string, default: "platform_groups" }
  *     requestBody:
  *       required: true
  *       content:
@@ -22,17 +30,28 @@ const router = Router();
  *               sessionId: { type: string }
  *               name: { type: string }
  *               participants: { type: array, items: { type: string } }
- *               image: { type: string }
  */
-router.post('/create', async (req: Request, res: Response) => {
+router.post('/create', mongoMiddleware, async (req: Request, res: Response) => {
   try {
     const { sessionId, name, participants, image } = req.body;
+    
+    // 1. Cria no WhatsApp via Baileys
     const sock = await BaileysManager.getSession(sessionId);
     const group = await sock.groupCreate(name, participants);
     
     if (image) {
       await sock.updateProfilePicture(group.id, { url: image });
     }
+
+    // 2. Salva no MongoDB para controle da plataforma
+    await req.mongoCollection.insertOne({
+      sessionId,
+      groupId: group.id,
+      name: group.subject,
+      platformCreated: true,
+      createdAt: new Date(),
+      participantsCount: participants.length + 1 // + o criador
+    });
     
     res.status(200).json({ success: true, data: group });
   } catch (error: any) {
@@ -44,13 +63,12 @@ router.post('/create', async (req: Request, res: Response) => {
  * @swagger
  * /groups/management/list:
  *   get:
- *     summary: Lista todos os grupos do usuário
+ *     summary: Lista todos os grupos do WhatsApp (Baileys)
  *     tags: [Groups Management]
  *     parameters:
  *       - in: query
  *         name: sessionId
  *         required: true
- *         schema: { type: string }
  */
 router.get('/list', async (req: Request, res: Response) => {
   try {
