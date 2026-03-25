@@ -9,7 +9,7 @@ const router = Router();
  * @swagger
  * /groups/create:
  *   post:
- *     summary: Cria um novo grupo no WhatsApp
+ *     summary: Cria um novo grupo no WhatsApp com nome, participantes e foto opcional
  *     tags: [Groups]
  *     requestBody:
  *       required: true
@@ -32,28 +32,40 @@ const router = Router();
  *                 type: array
  *                 items:
  *                   type: string
- *                 description: Lista de JIDs dos participantes (ex. 5511999999999@s.whatsapp.net)
+ *                 description: Lista de JIDs (ex. 5511999999999@s.whatsapp.net)
+ *               image:
+ *                 type: string
+ *                 description: URL da imagem ou Base64 para o ícone do grupo (opcional)
  *     responses:
  *       200:
  *         description: Grupo criado com sucesso
  *       400:
  *         description: Erro na requisição
- *       500:
- *         description: Erro interno
  */
 router.post('/create', async (req: Request, res: Response) => {
   try {
-    const { sessionId, name, participants } = req.body;
+    const { sessionId, name, participants, image } = req.body;
 
     if (!sessionId || !name || !participants || !Array.isArray(participants)) {
-      res.status(400).json({ error: 'Parâmetros inválidos. Certifique-se de enviar sessionId, name e participants (array).' });
+      res.status(400).json({ error: 'Parâmetros inválidos. Informe sessionId, name e participants.' });
       return;
     }
 
     const sock = await BaileysManager.getSession(sessionId);
 
-    // No Baileys, criar grupo é simples:
+    // 1. Cria o grupo com nome e participantes
     const group = await sock.groupCreate(name, participants);
+
+    // 2. Se enviou imagem, atualiza o ícone do grupo
+    if (image && group.id) {
+      try {
+        // O Baileys aceita URL ou Buffer
+        await sock.updateProfilePicture(group.id, { url: image });
+      } catch (imgError) {
+        console.warn('Grupo criado, mas erro ao definir imagem:', imgError);
+        // Não barramos a resposta de sucesso pois o grupo foi criado
+      }
+    }
 
     res.status(200).json({
       success: true,
