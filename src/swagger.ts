@@ -7,8 +7,7 @@ const options: swaggerJsdoc.Options = {
     info: {
       title: "WaTools Baileys API",
       version: "1.0.0",
-      description:
-        "API para gerenciamento de grupos e funcionalidades WhatsApp via Baileys.",
+      description: "API robusta para gerenciamento de grupos e contatos WhatsApp.",
       contact: {
         name: "WaTools Team",
         email: "watoolsbr@gmail.com",
@@ -20,14 +19,9 @@ const options: swaggerJsdoc.Options = {
         description: "Servidor Local",
       },
     ],
-    components: {
-      schemas: {
-        // Você pode definir schemas reutilizáveis aqui se desejar
-      }
-    }
   },
-  // Certifique-se de que o caminho aponta corretamente para os arquivos com anotações
-  apis: ["./src/routes/*.ts", "./src/index.ts"],
+  // Escaneia arquivos em subpastas para capturar todas as anotações
+  apis: ["./src/routes/**/*.ts", "./src/index.ts"],
 };
 
 const swaggerSpec = swaggerJsdoc(options);

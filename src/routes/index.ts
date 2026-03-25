@@ -1,16 +1,15 @@
-/**
- * @description 
- * Exporta as rotas da API
-**/
+"use client";
 
-// Express
 import { Router } from 'express';
 import groupsRoutes from './groups';
+import contactsRoutes from './contacts';
 
-//Inicia o Router
 const router = Router();
 
-// Rota de grupos
+// Rota de grupos organizada por sub-pastas
 router.use('/groups', groupsRoutes);
+
+// Rota de contatos
+router.use('/contacts', contactsRoutes);
 
 export default router;
