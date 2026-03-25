@@ -42,14 +42,31 @@ router.post('/create', mongoMiddleware, async (req: Request, res: Response) => {
     const sock = await BaileysManager.getSession(apiToken);
     const group = await sock.groupCreate(name, participants);
     
+    // Suporte robusto para Base64 enviado pelo Frontend (ex: "data:image/jpeg;base64,....")
     if (image) {
-      try { await sock.updateProfilePicture(group.id, { url: image }); } catch (e) {}
+      try {
+        let profilePicUpdate: any;
+        
+        // Verifica se é uma string Base64 padrão do navegador
+        if (typeof image === 'string' && image.includes('base64,')) {
+          const base64Data = image.split('base64,')[1];
+          profilePicUpdate = Buffer.from(base64Data, 'base64');
+        } else {
+          // Mantém a compatibilidade caso seja uma URL direta no futuro
+          profilePicUpdate = { url: image };
+        }
+
+        await sock.updateProfilePicture(group.id, profilePicUpdate);
+      } catch (e) {
+        console.log("Erro ao subir a imagem no WhatsApp", e);
+      }
     }
+
     if (description) {
       try { await sock.groupUpdateDescription(group.id, description); } catch (e) {}
     }
 
-    // 2. Manipula o MongoDB para a estrutura UsergroupManagement (Usando tipagem flexível temporária)
+    // 2. Manipula o MongoDB para a estrutura UsergroupManagement
     let userDoc: any = await req.mongoCollection.findOne({ user_id: userId });
     
     if (!userDoc) {
@@ -66,7 +83,7 @@ router.post('/create', mongoMiddleware, async (req: Request, res: Response) => {
     tokenDoc.groups.push({
       id: group.id,
       name: group.subject,
-      picture: image || "",
+      picture: image || "", // Salva o Base64 ou string vazia no banco
       description: description || "",
       admins: [sock.user?.id?.split(':')[0] + '@s.whatsapp.net', ...participants]
     });

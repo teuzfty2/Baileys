@@ -122,8 +122,12 @@ router.post('/link-groups', mongoMiddleware, async (req: Request, res: Response)
           for (const groupId of groupIds) {
             try {
               const groupMeta = await sock.groupMetadata(groupId);
-              let pictureUrl = "";
-              try { pictureUrl = await sock.profilePictureUrl(groupId, 'image'); } catch(e){}
+              let pictureUrl: string = "";
+              
+              try { 
+                const url = await sock.profilePictureUrl(groupId, 'image'); 
+                pictureUrl = url || ""; // Resolve o erro de undefined
+              } catch(e){}
 
               const alreadyExists = commDoc.idCommunity[0].groupsCommunity.some((g: any) => g.id === groupId);
               
