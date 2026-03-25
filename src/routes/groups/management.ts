@@ -49,8 +49,8 @@ router.post('/create', mongoMiddleware, async (req: Request, res: Response) => {
       try { await sock.groupUpdateDescription(group.id, description); } catch (e) {}
     }
 
-    // 2. Manipula o MongoDB para a estrutura UsergroupManagement
-    let userDoc = await req.mongoCollection.findOne({ user_id: userId });
+    // 2. Manipula o MongoDB para a estrutura UsergroupManagement (Usando tipagem flexível temporária)
+    let userDoc: any = await req.mongoCollection.findOne({ user_id: userId });
     
     if (!userDoc) {
       userDoc = { user_id: userId, groupManagement: [] };
@@ -101,6 +101,120 @@ router.get('/list', async (req: Request, res: Response) => {
     const sock = await BaileysManager.getSession(apiToken as string);
     const groups = await sock.groupFetchAllParticipating();
     res.status(200).json({ success: true, data: Object.values(groups) });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /groups/management/leave:
+ *   post:
+ *     summary: O número conectado sai de um grupo
+ *     tags: [Groups Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [apiToken, groupId]
+ *             properties:
+ *               apiToken: { type: string }
+ *               groupId: { type: string }
+ */
+router.post('/leave', async (req: Request, res: Response) => {
+  try {
+    const { apiToken, groupId } = req.body;
+    const sock = await BaileysManager.getSession(apiToken);
+    
+    await sock.groupLeave(groupId);
+    
+    res.status(200).json({ success: true, message: "Saiu do grupo com sucesso." });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /groups/management/delete:
+ *   delete:
+ *     summary: Exclui o grupo por completo (Remove todos os membros, sai do grupo e apaga do BD)
+ *     tags: [Groups Management]
+ *     parameters:
+ *       - in: header
+ *         name: x-base
+ *         schema: { type: string, default: "watools_db" }
+ *       - in: header
+ *         name: x-collection
+ *         schema: { type: string, default: "user_management" }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, apiToken, groupId]
+ *             properties:
+ *               userId: { type: string }
+ *               apiToken: { type: string }
+ *               groupId: { type: string }
+ */
+router.delete('/delete', mongoMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { userId, apiToken, groupId } = req.body;
+    const sock = await BaileysManager.getSession(apiToken);
+
+    // 1. Busca todos os participantes do grupo
+    const groupMeta = await sock.groupMetadata(groupId);
+    const myJid = sock.user?.id?.split(':')[0] + '@s.whatsapp.net';
+
+    // Filtra para pegar todo mundo, MENOS o próprio bot/criador
+    const participantsToRemove = groupMeta.participants
+      .map(p => p.id)
+      .filter(id => id !== myJid);
+
+    // 2. Expulsa todos os membros (se houver alguém além do criador)
+    if (participantsToRemove.length > 0) {
+      await sock.groupParticipantsUpdate(groupId, participantsToRemove, 'remove');
+    }
+
+    // 3. O criador sai do grupo
+    await sock.groupLeave(groupId);
+
+    // 4. Comportamento no MongoDB: Remover da estrutura aninhada (Tratando possível null)
+    let userDoc: any = await req.mongoCollection.findOne({ user_id: userId });
+    
+    if (userDoc && userDoc.groupManagement) {
+      let tokenDoc = userDoc.groupManagement.find((t: any) => t.api_token === apiToken);
+      if (tokenDoc) {
+        // Remove do array principal de grupos
+        tokenDoc.groups = tokenDoc.groups.filter((g: any) => g.id !== groupId);
+        
+        // Se o grupo estava em alguma comunidade, remove de lá também
+        if (tokenDoc.community) {
+          tokenDoc.community.forEach((comm: any) => {
+            if (comm.idCommunity && comm.idCommunity.length > 0) {
+              comm.idCommunity[0].groupsCommunity = comm.idCommunity[0].groupsCommunity.filter(
+                (g: any) => g.id !== groupId
+              );
+            }
+          });
+        }
+
+        // Salva a estrutura limpa de volta no banco
+        await req.mongoCollection.updateOne(
+          { user_id: userId },
+          { $set: { groupManagement: userDoc.groupManagement } }
+        );
+      }
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Grupo excluído por completo (Membros removidos, saiu do grupo e apagado do sistema)." 
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

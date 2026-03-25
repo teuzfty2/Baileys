@@ -41,7 +41,7 @@ router.post('/create', mongoMiddleware, async (req: Request, res: Response) => {
     const community = await (sock as any).communityCreate(name, description);
 
     // 2. Manipula o MongoDB para a estrutura UsergroupManagement
-    let userDoc = await req.mongoCollection.findOne({ user_id: userId });
+    let userDoc: any = await req.mongoCollection.findOne({ user_id: userId });
     
     if (!userDoc) {
       userDoc = { user_id: userId, groupManagement: [] };
@@ -111,11 +111,11 @@ router.post('/link-groups', mongoMiddleware, async (req: Request, res: Response)
       await (sock as any).communityParticipantsUpdate(communityId, [groupId], 'add');
     }
 
-    let userDoc = await req.mongoCollection.findOne({ user_id: userId });
+    let userDoc: any = await req.mongoCollection.findOne({ user_id: userId });
     
-    if (userDoc) {
+    if (userDoc && userDoc.groupManagement) {
       let tokenDoc = userDoc.groupManagement.find((t: any) => t.api_token === apiToken);
-      if (tokenDoc) {
+      if (tokenDoc && tokenDoc.community) {
         let commDoc = tokenDoc.community.find((c: any) => c.id === communityId);
         
         if (commDoc && commDoc.idCommunity && commDoc.idCommunity.length > 0) {
