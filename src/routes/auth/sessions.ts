@@ -24,19 +24,18 @@ const router = Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [sessionId, userId]
+ *             required: [apiToken, userId]
  *             properties:
- *               sessionId: { type: string }
+ *               apiToken: { type: string }
  *               userId: { type: string }
  *               status: { type: string, default: "active" }
  */
 router.post('/save', mongoMiddleware, async (req: Request, res: Response) => {
   try {
-    const { sessionId, userId, status = 'active' } = req.body;
+    const { apiToken, userId, status = 'active' } = req.body;
 
-    // O middleware já injetou 'req.mongoCollection'
     const result = await req.mongoCollection.updateOne(
-      { sessionId },
+      { apiToken },
       { 
         $set: { 
           userId, 

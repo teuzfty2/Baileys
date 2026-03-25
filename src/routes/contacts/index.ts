@@ -13,19 +13,18 @@ const router = Router();
  *     tags: [Contacts]
  *     parameters:
  *       - in: query
- *         name: sessionId
+ *         name: apiToken
  *         required: true
  *         schema: { type: string }
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { sessionId } = req.query;
-    const sock = await BaileysManager.getSession(sessionId as string);
+    const { apiToken } = req.query;
+    const sock = await BaileysManager.getSession(apiToken as string);
     
     // Acessa o store que nós anexamos dinamicamente no BaileysManager
     const contacts = (sock as any).store?.contacts || {}; 
     
-    // Formatando para um array amigável para o front
     const formattedContacts = Object.values(contacts).map((c: any) => ({
       id: c.id,
       name: c.name || c.notify || c.verifiedName || 'Desconhecido',

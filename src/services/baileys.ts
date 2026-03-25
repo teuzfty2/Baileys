@@ -21,12 +21,13 @@ const logger = pino({ level: 'silent' });
 export class BaileysManager {
   private static instances: Map<string, WASocket> = new Map();
 
-  static async getSession(sessionId: string): Promise<WASocket> {
-    if (this.instances.has(sessionId)) {
-      return this.instances.get(sessionId)!;
+  static async getSession(apiToken: string): Promise<WASocket> {
+    if (this.instances.has(apiToken)) {
+      return this.instances.get(apiToken)!;
     }
 
-    const { state, saveCreds } = await useMultiFileAuthState(`sessions/${sessionId}`);
+    // Agora salva os arquivos de sessão usando o apiToken como nome da pasta
+    const { state, saveCreds } = await useMultiFileAuthState(`sessions/${apiToken}`);
 
     const sock = makeWASocket({
       auth: {
@@ -51,12 +52,12 @@ export class BaileysManager {
       if (connection === 'close') {
         const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
         if (shouldReconnect) {
-          this.instances.delete(sessionId);
+          this.instances.delete(apiToken);
         }
       }
     });
 
-    this.instances.set(sessionId, sock);
+    this.instances.set(apiToken, sock);
     return sock;
   }
 }

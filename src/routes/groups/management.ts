@@ -25,11 +25,10 @@ const router = Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [userId, apiToken, sessionId, name, participants]
+ *             required: [userId, apiToken, name, participants]
  *             properties:
  *               userId: { type: string }
  *               apiToken: { type: string }
- *               sessionId: { type: string }
  *               name: { type: string }
  *               description: { type: string }
  *               image: { type: string }
@@ -37,10 +36,10 @@ const router = Router();
  */
 router.post('/create', mongoMiddleware, async (req: Request, res: Response) => {
   try {
-    const { userId, apiToken, sessionId, name, participants, image, description } = req.body;
+    const { userId, apiToken, name, participants, image, description } = req.body;
     
-    // 1. Cria no WhatsApp via Baileys
-    const sock = await BaileysManager.getSession(sessionId);
+    // 1. Cria no WhatsApp via Baileys usando o apiToken
+    const sock = await BaileysManager.getSession(apiToken);
     const group = await sock.groupCreate(name, participants);
     
     if (image) {
@@ -69,7 +68,7 @@ router.post('/create', mongoMiddleware, async (req: Request, res: Response) => {
       name: group.subject,
       picture: image || "",
       description: description || "",
-      admins: [sock.user?.id?.split(':')[0] + '@s.whatsapp.net', ...participants] // Simplificado
+      admins: [sock.user?.id?.split(':')[0] + '@s.whatsapp.net', ...participants]
     });
 
     // Salva no banco de dados
@@ -93,13 +92,13 @@ router.post('/create', mongoMiddleware, async (req: Request, res: Response) => {
  *     tags: [Groups Management]
  *     parameters:
  *       - in: query
- *         name: sessionId
+ *         name: apiToken
  *         required: true
  */
 router.get('/list', async (req: Request, res: Response) => {
   try {
-    const { sessionId } = req.query;
-    const sock = await BaileysManager.getSession(sessionId as string);
+    const { apiToken } = req.query;
+    const sock = await BaileysManager.getSession(apiToken as string);
     const groups = await sock.groupFetchAllParticipating();
     res.status(200).json({ success: true, data: Object.values(groups) });
   } catch (error: any) {

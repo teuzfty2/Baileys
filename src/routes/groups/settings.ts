@@ -17,16 +17,16 @@ const router = Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [sessionId, groupId, setting]
+ *             required: [apiToken, groupId, setting]
  *             properties:
- *               sessionId: { type: string }
+ *               apiToken: { type: string }
  *               groupId: { type: string }
  *               setting: { type: string, enum: [announcement, not_announcement, locked, unlocked, membership_approval_mode, not_membership_approval_mode] }
  */
 router.patch('/update', async (req: Request, res: Response) => {
   try {
-    const { sessionId, groupId, setting } = req.body;
-    const sock = await BaileysManager.getSession(sessionId);
+    const { apiToken, groupId, setting } = req.body;
+    const sock = await BaileysManager.getSession(apiToken);
     await sock.groupSettingUpdate(groupId, setting as any);
     res.status(200).json({ success: true, message: `Configuração ${setting} aplicada.` });
   } catch (error: any) {

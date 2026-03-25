@@ -13,7 +13,7 @@ const router = Router();
  *     tags: [Groups Management]
  *     parameters:
  *       - in: query
- *         name: sessionId
+ *         name: apiToken
  *         required: true
  *       - in: header
  *         name: x-base
@@ -24,11 +24,11 @@ const router = Router();
  */
 router.get('/list', mongoMiddleware, async (req: Request, res: Response) => {
   try {
-    const { sessionId } = req.query;
+    const { apiToken } = req.query;
     
-    // Filtra no banco apenas os grupos dessa sessão
+    // Filtra no banco apenas os grupos desse token
     const groups = await req.mongoCollection
-      .find({ sessionId })
+      .find({ apiToken })
       .sort({ createdAt: -1 })
       .toArray();
 

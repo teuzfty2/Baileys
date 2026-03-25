@@ -13,7 +13,7 @@ const router = Router();
  *     tags: [Groups Invites]
  *     parameters:
  *       - in: query
- *         name: sessionId
+ *         name: apiToken
  *         required: true
  *       - in: query
  *         name: groupId
@@ -21,8 +21,8 @@ const router = Router();
  */
 router.get('/link', async (req: Request, res: Response) => {
   try {
-    const { sessionId, groupId } = req.query;
-    const sock = await BaileysManager.getSession(sessionId as string);
+    const { apiToken, groupId } = req.query;
+    const sock = await BaileysManager.getSession(apiToken as string);
     const code = await sock.groupInviteCode(groupId as string);
     res.status(200).json({ success: true, link: `https://chat.whatsapp.com/${code}` });
   } catch (error: any) {

@@ -25,18 +25,17 @@ const router = Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [userId, apiToken, sessionId, name, description]
+ *             required: [userId, apiToken, name, description]
  *             properties:
  *               userId: { type: string }
  *               apiToken: { type: string }
- *               sessionId: { type: string }
  *               name: { type: string }
  *               description: { type: string }
  */
 router.post('/create', mongoMiddleware, async (req: Request, res: Response) => {
   try {
-    const { userId, apiToken, sessionId, name, description } = req.body;
-    const sock = await BaileysManager.getSession(sessionId);
+    const { userId, apiToken, name, description } = req.body;
+    const sock = await BaileysManager.getSession(apiToken);
 
     // 1. Cria a comunidade no WhatsApp
     const community = await (sock as any).communityCreate(name, description);
@@ -54,7 +53,6 @@ router.post('/create', mongoMiddleware, async (req: Request, res: Response) => {
       userDoc.groupManagement.push(tokenDoc);
     }
 
-    // Estrutura solicitada de infoCommunity e idCommunity
     tokenDoc.community.push({
       id: community.id,
       idCommunity: [
@@ -66,7 +64,6 @@ router.post('/create', mongoMiddleware, async (req: Request, res: Response) => {
       ]
     });
 
-    // Atualiza o documento no banco
     await req.mongoCollection.updateOne(
       { user_id: userId },
       { $set: { groupManagement: userDoc.groupManagement } },
@@ -98,25 +95,22 @@ router.post('/create', mongoMiddleware, async (req: Request, res: Response) => {
  *         application/json:
  *           schema:
  *             type: object
- *             required: [userId, apiToken, sessionId, communityId, groupIds]
+ *             required: [userId, apiToken, communityId, groupIds]
  *             properties:
  *               userId: { type: string }
  *               apiToken: { type: string }
- *               sessionId: { type: string }
  *               communityId: { type: string }
  *               groupIds: { type: array, items: { type: string } }
  */
 router.post('/link-groups', mongoMiddleware, async (req: Request, res: Response) => {
   try {
-    const { userId, apiToken, sessionId, communityId, groupIds } = req.body;
-    const sock = await BaileysManager.getSession(sessionId);
+    const { userId, apiToken, communityId, groupIds } = req.body;
+    const sock = await BaileysManager.getSession(apiToken);
 
-    // 1. Vincula no WhatsApp
     for (const groupId of groupIds) {
       await (sock as any).communityParticipantsUpdate(communityId, [groupId], 'add');
     }
 
-    // 2. Atualiza a estrutura no MongoDB
     let userDoc = await req.mongoCollection.findOne({ user_id: userId });
     
     if (userDoc) {
@@ -124,17 +118,13 @@ router.post('/link-groups', mongoMiddleware, async (req: Request, res: Response)
       if (tokenDoc) {
         let commDoc = tokenDoc.community.find((c: any) => c.id === communityId);
         
-        // Se encontrou a comunidade no banco, vamos adicionar os grupos dentro dela
         if (commDoc && commDoc.idCommunity && commDoc.idCommunity.length > 0) {
-          
           for (const groupId of groupIds) {
             try {
-              // Pega dados reais do grupo recém-vinculado
               const groupMeta = await sock.groupMetadata(groupId);
               let pictureUrl = "";
               try { pictureUrl = await sock.profilePictureUrl(groupId, 'image'); } catch(e){}
 
-              // Verifica se o grupo já não está na lista para não duplicar
               const alreadyExists = commDoc.idCommunity[0].groupsCommunity.some((g: any) => g.id === groupId);
               
               if (!alreadyExists) {
@@ -149,7 +139,6 @@ router.post('/link-groups', mongoMiddleware, async (req: Request, res: Response)
             }
           }
 
-          // Salva a estrutura completa de volta
           await req.mongoCollection.updateOne(
             { user_id: userId },
             { $set: { groupManagement: userDoc.groupManagement } }
