@@ -1,0 +1,4 @@
+#Ignored
+/node_modules
+/dist
+.dyad/

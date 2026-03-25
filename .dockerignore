@@ -1,0 +1,8 @@
+#Ignora diretorios que não devem ser enviados na imagem final do projeto
+
+# Documentação do projeto
+docs/
+.vscode
+
+# Node Modules
+node_modules

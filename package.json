@@ -1,0 +1,50 @@
+{
+  "name": "watools-api",
+  "version": "0.0.1",
+  "description": "WaTools API",
+  "license": "MIT",
+  "author": {
+    "name": "WaTools Team",
+    "email": "watoolsbr@gmail.com",
+    "url": "https://github.com/watoolsteam"
+  },
+  "dependencies": {
+    "@types/body-parser": "^1.19.5",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.0.0",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
+    "axios": "^1.7.8",
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "google-auth-library": "^10.6.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongodb": "^6.17.0",
+    "multer": "^2.1.0",
+    "mysql2": "^3.11.5",
+    "sequelize": "^6.37.5",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  },
+  "scripts": {
+    "update:pnpm": "npx corepack use pnpm@latest && pnpm -v",
+    "clean:bundle": "rimraf dist",
+    "clean:node_modules": "rimraf node_modules",
+    "clean": "rimraf dist node_modules",
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "dev": "ts-node-dev src/index.ts"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.1",
+    "rimraf": "^6.0.1",
+    "ts-node-dev": "^2.0.0"
+  },
+  "packageManager": "pnpm@10.30.3+sha512.c961d1e0a2d8e354ecaa5166b822516668b7f44cb5bd95122d590dd81922f606f5473b6d23ec4a5be05e7fcd18e8488d47d978bbe981872f1145d06e9a740017"
+}
