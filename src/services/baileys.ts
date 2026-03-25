@@ -4,11 +4,13 @@ import makeWASocket, {
   DisconnectReason, 
   useMultiFileAuthState, 
   makeCacheableSignalKeyStore,
-  WASocket,
-  makeInMemoryStore
+  WASocket
 } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import { Boom } from '@hapi/boom';
+
+// Contorno para o erro de tipagem na versão 7.0.0-rc.9
+const { makeInMemoryStore } = require('@whiskeysockets/baileys');
 
 // Logger para o Baileys
 const logger = pino({ level: 'silent' });
