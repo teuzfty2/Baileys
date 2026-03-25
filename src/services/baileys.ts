@@ -4,8 +4,8 @@ import makeWASocket, {
   DisconnectReason, 
   useMultiFileAuthState, 
   makeCacheableSignalKeyStore,
-  AuthenticationState,
-  WASocket
+  WASocket,
+  makeInMemoryStore
 } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import { Boom } from '@hapi/boom';
@@ -15,23 +15,15 @@ const logger = pino({ level: 'silent' });
 
 /**
  * Gerenciador de conexões Baileys.
- * Como o QR Code é tratado externamente, aqui focamos em usar sessões existentes
- * ou inicializar ações específicas.
  */
 export class BaileysManager {
   private static instances: Map<string, WASocket> = new Map();
 
-  /**
-   * Inicializa ou recupera uma instância do socket para uma sessão específica.
-   * Em um cenário real, você buscaria os dados de autenticação do MongoDB.
-   */
   static async getSession(sessionId: string): Promise<WASocket> {
     if (this.instances.has(sessionId)) {
       return this.instances.get(sessionId)!;
     }
 
-    // Nota: Aqui estamos usando useMultiFileAuthState por simplicidade, 
-    // mas o ideal seria um AuthState customizado que lê do MongoDB.
     const { state, saveCreds } = await useMultiFileAuthState(`sessions/${sessionId}`);
 
     const sock = makeWASocket({
@@ -42,6 +34,13 @@ export class BaileysManager {
       printQRInTerminal: false,
       logger,
     });
+
+    // Inicializa o Store em memória para capturar Contatos, Chats e Mensagens
+    const store = makeInMemoryStore({ logger });
+    store.bind(sock.ev);
+    
+    // Anexa o store ao objeto sock burlando o TypeScript para facilitar o acesso nas rotas
+    (sock as any).store = store;
 
     sock.ev.on('creds.update', saveCreds);
 

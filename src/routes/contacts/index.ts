@@ -22,9 +22,8 @@ router.get('/', async (req: Request, res: Response) => {
     const { sessionId } = req.query;
     const sock = await BaileysManager.getSession(sessionId as string);
     
-    // Na Baileys, os contatos são sincronizados no início da conexão.
-    // Estamos retornando os contatos conhecidos pela instância.
-    const contacts = await sock.store?.contacts || {}; 
+    // Acessa o store que nós anexamos dinamicamente no BaileysManager
+    const contacts = (sock as any).store?.contacts || {}; 
     
     // Formatando para um array amigável para o front
     const formattedContacts = Object.values(contacts).map((c: any) => ({
